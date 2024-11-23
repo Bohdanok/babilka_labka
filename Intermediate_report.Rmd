@@ -1,0 +1,52 @@
+# **Mini-research project**
+
+## *Team members:*
+
+*Viktor Pakholok (<https://github.com/viktorpakholok>)*
+
+*Lysyk Lev (<https://github.com/Lius912>)*
+
+*Bohdan Milian (<https://github.com/Bohdanok>)*
+
+# **The aim of the project:**
+
+Examine and visualize the data provided by the steam game service to provide some correlations between different characteristics. Find valuable insights about user experience and accomplishments that the game achieved.
+
+## *For this we used the dataset from Kaggle*
+
+<https://www.kaggle.com/datasets/fronkongames/steam-games-dataset?resource=download>
+
+# **Data specifications:**
+
+*This dataset provides detailed information about video games, including their titles, release dates, pricing, and supported platforms (Windows, Mac, Linux). It has user interaction metrics like peak concurrent users, reviews, and playtime data, along with additional details such as categories, genres, tags, and achievements. The dataset also captures commercial and content-related information like estimated owners, downloadable content (DLC) counts, and Metacritic scores for popular games.*
+
+# **The most befalling metrics of the dataset**
+
+*Metarcitic score*
+
+This variable can be compared to user reviews or player engagement to analyze alignment between professional critic and player opinions.
+
+*About the game*
+
+Provides valuable information about the game, which can be used to make a precise classifier to guess, whether this game is successful.
+
+*Price:*
+
+This column can be compared with the other metrics to get the idea of value for money relation.
+
+# **Insights from Initial Descriptive Analysis**
+
+-   The year 2023 was the most productive in game publishing(may be due to covid-19).
+
+-   It was interesting that 18% of games are supported on Mac and even less on Linux - 13%.
+
+-   One more interesting thing is, that 59% of games do not have audio dubbing.
+
+# **natural hypotheses to be tested**
+
+- Dependence on release time and price. Test whether the latest games have become more expensive(taking into account the inflation).
+
+- Dependence on the price and rating of the game. Check whether pricier games have better ratings.
+
+- Dependence on Metacritic and user scores. Test if scores of professional critics ailing with user preferences. 
+

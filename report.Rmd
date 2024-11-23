@@ -1,0 +1,12 @@
+# **Mini-research project**
+
+## *Team members:*
+
+### *Viktor Pakholok (<https://github.com/viktorpakholok>), Lysyk Lev (<https://github.com/Lius912>), Bohdan Milian (<https://github.com/Bohdanok>)*
+
+# **The aim of the project:**
+
+
+
+
+## *For this we used the dataset from Kaggle <https://www.kaggle.com/datasets/fronkongames/steam-games-dataset?resource=download>*
