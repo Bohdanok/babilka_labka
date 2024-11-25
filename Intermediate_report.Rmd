@@ -10,7 +10,7 @@
 
 # **The aim of the project:**
 
-Examine and visualize the data provided by the steam game service to provide some correlations between different characteristics. Find valuable insights about user experience and accomplishments that the game achieved.
+Analyze and visualize the dataset provided by the Steam game service to identify and explore potential correlations between various characteristics. Get some meaningful insights and present them.
 
 ## *For this we used the dataset from Kaggle*
 
@@ -42,11 +42,10 @@ This column can be compared with the other metrics to get the idea of value for 
 
 -   One more interesting thing is, that 59% of games do not have audio dubbing.
 
-# **natural hypotheses to be tested**
+# **Natural hypotheses to be tested**
 
-- Dependence on release time and price. Test whether the latest games have become more expensive(taking into account the inflation).
+-   Dependence on release time and price. Test whether the latest games have become more expensive(taking into account the inflation).
 
-- Dependence on the price and rating of the game. Check whether pricier games have better ratings.
+-   Dependence on the price and rating of the game. Check whether pricier games have better ratings.
 
-- Dependence on Metacritic and user scores. Test if scores of professional critics ailing with user preferences. 
-
+-   Dependence on Metacritic and user scores. Test if scores of professional critics ailing with user preferences.
