@@ -1,0 +1,212 @@
+---
+title: "Bayes Classifier"
+author: "Viktor Pakholok"
+date: "2024-12-05"
+output: html_document
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+library(dplyr)
+library(readr)
+library(tidytext)
+```
+
+```{r}
+train_path <- "games_fixed_columns.csv"
+train <- read.csv(file = train_path, stringsAsFactors = FALSE)
+```
+
+```{r}
+
+test_path <- "games_fixed_columns_test.csv"
+test <- read.csv(file = test_path, stringsAsFactors = FALSE)
+
+```
+
+
+```{r}
+stop_words <- read_file("stop_words.txt")
+splitted_stop_words <- strsplit(stop_words, split='\n')
+splitted_stop_words <- splitted_stop_words[[1]]
+```
+
+```{r}
+train <- train %>%
+  mutate(Label = ifelse(Positive >= 2 * Negative, 1, 0))
+
+train <- train[, c("About.the.game", "Label")]
+```
+
+```{r}
+test <- test %>%
+  mutate(Label = ifelse(Positive >= 2 * Negative, 1, 0))
+
+test <- test[, c("About.the.game", "Label")]
+```
+
+```{r}
+tidy_text <- unnest_tokens(train, 'Word', 'About.the.game', token="words") %>%
+             filter(!Word %in% splitted_stop_words)
+```
+
+```{r}
+counted_words <- tidy_text %>% count(Word,sort=TRUE)
+counted_words
+```
+
+```{r}
+
+naiveBayes <- setRefClass("naiveBayes",
+                          
+       # here it would be wise to have some vars to store intermediate result
+       # frequency dict etc. Though pay attention to bag of words! 
+       fields = list(train_df = "data.frame", stopwords = "character", prob_of_bad = "numeric", prob_of_good = "numeric", num_uniq = "numeric", bad_bow = "data.frame", good_bow = "data.frame", sum_in_bad = "numeric", sum_in_good = "numeric"),
+       methods = list(
+                    # prepare your training data as X - bag of words for each of your
+                    # messages and corresponding label for the message encoded as 0 or 1 
+                    # (binary classification task)
+                    fit = function(X, y)
+                    {
+                      if (!is.data.frame(y)) {
+                        y <- data.frame(Label = y)
+                      }
+                      num_uniq <<- length(X$Word)
+                      
+                      fc_count <- y %>% count(Label, sort = TRUE)
+
+                      num_of_bad <- fc_count[fc_count$Label == 0, "n"]
+                      num_of_good <- fc_count[fc_count$Label == 1, "n"]
+                      prob_of_good <<- num_of_good / (num_of_good + num_of_bad)
+                      prob_of_bad <<- num_of_bad / (num_of_good + num_of_bad)
+                      
+                      bad_games <- train_df[train_df$Label == 0,]
+                      good_games <- train_df[train_df$Label == 1,]
+                      bad_bow <<- bad_games %>% count(Word,sort=TRUE)
+                      good_bow <<- good_games %>% count(Word,sort=TRUE)
+                      sum_in_bad <<- sum(bad_bow$n)
+                      sum_in_good <<- sum(good_bow$n)
+                    },
+                    
+                    # return prediction for a single description 
+                    predict = function(description)
+                    {
+                         if (description == "") {
+                           return(0)
+                         }
+                      
+                         p_mess_bad <- prob_of_bad 
+                         p_mess_good <- prob_of_good 
+                         
+                         description <- data.frame(Text=description)
+                         tidy_message <- unnest_tokens(description, 'Word', 'Text', token="words") %>% filter(!Word %in% stopwords)
+                         description_count <- tidy_message %>% count(Word)
+
+                         for(i in 1:length(description_count$Word)){
+                            # print(description_count[i, "Word"])
+                            word = description_count[i, "Word"]
+                            if (!(word %in% bad_bow$Word)) {
+                              p_mess_bad <- p_mess_bad * 1/(sum_in_bad+num_uniq)
+
+                            } else {
+                              p_mess_bad <- p_mess_bad * (bad_bow[bad_bow$Word == word, "n"] + 1)/(sum_in_bad+num_uniq)
+                            }
+                            
+                            if (!(word %in% good_bow$Word)) {
+                              p_mess_good <- p_mess_good * 1/(sum_in_good+num_uniq)
+                            } else {
+                              p_mess_good <- p_mess_good * (good_bow[good_bow$Word == word, "n"] + 1)/(sum_in_good+num_uniq)
+                            }
+                            if (p_mess_bad<1e-100 || p_mess_good<1e-100) {
+                              p_mess_bad <- p_mess_bad * 1e100
+                              p_mess_good <- p_mess_good * 1e100
+                            }
+                         }
+                         if (p_mess_bad > p_mess_good) {
+                           return(0)
+                         } else {
+                           return(1)
+                         }
+                    },
+                    
+                    # score you test set so to get the understanding how well you model
+                    # works.
+                    # look at f1 score or precision and recall
+                    # visualize them 
+                    # try how well your model generalizes to real world data! 
+                    score = function(X_test, y_test) {
+                      if (!is.data.frame(y_test)) {
+                        y_test <- data.frame(Label = y_test)
+                      }
+                      all_positive = 0
+                      false_negative = 0
+                      false_positive = 0
+                      true_positive = 0
+                      true_negative = 0
+                      total = length(y_test$Label)
+
+                      # Model evaluation on test set of news
+                      print(nrow(X_test))
+                      for (i in 1:nrow(X_test)) {
+                       # print(X_test[i, 1])
+                       label = strtoi(y_test[i, 1])
+                       prediction = predict(X_test[i, 1])
+    
+                       cat(label)
+                       if (label == prediction) {
+                         all_positive <- all_positive + 1
+                       if (label == 1) {
+                         true_positive <- true_positive + 1
+                       } else {
+                        true_negative <- true_negative + 1
+                       }
+                        } else {
+                        if (label == 1) {
+                       false_negative <- false_negative + 1
+                         } else {
+                       false_positive <- false_positive + 1
+                         }
+                       }
+                     }
+
+  # Metrics calculation
+ recall = true_positive / (true_positive + false_negative)  # Recall: TP / (TP + FN)
+  precision = true_positive / (true_positive + false_positive)  # Precision: TP / (TP + FP)
+  f1_score = 2 * (recall * precision) / (recall + precision)  # F1-score: 
+  accuracy = (true_positive + true_negative) / total  # Accuracy: (TP + TN) / Total
+
+  # Return of results
+  return(list(f1_score = f1_score, precision = precision, recall = recall, accuracy = accuracy))
+}
+
+                    
+))
+```
+
+```{r}
+model = naiveBayes(train_df = tidy_text, stopwords = splitted_stop_words)
+model$fit(counted_words, train[2])
+```
+
+```{r}
+model$score(test[1], test[2])
+
+# model$predict("")
+
+```
+
+```{r}
+# descr_ <- "Hi there"
+# 
+# description <- data.frame(Text=descr_)
+# res <- model$predict(descr_)
+# if (strtoi("1") == res) {
+#   print("YES")
+# }
+# 
+x <- train[2]
+#   
+print(x[1:6])
+
+
+```
