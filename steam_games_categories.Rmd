@@ -49,7 +49,7 @@ select_top_genre <- function(years) {
         most_popular_genre <- genre
       }
     }
-    top_genres_by_year[[paste(year, ": ", most_popular_genre, sep = "")]] = max_count
+    top_genres_by_year[[paste(most_popular_genre, ": ", year, sep = "")]] = max_count
   }
   return (top_genres_by_year)
 }
@@ -120,6 +120,7 @@ get_most_rated_genre_by_years <- function(cur_data) {
 
 ```
 
+
 ```{r}
 min_reviews_count <- 5
 games_data2 <- data_with_reviews(games_data, min_reviews_count)
@@ -129,21 +130,22 @@ top_genre_by_years <- unlist(get_most_created_genre_by_years(games_data2))
 par(mar = c(5,8, 2, 1))
 blue_shades <- adjustcolor(rainbow(length(top_genre_by_years), start=.5, end=.65), alpha.f = 0.7)
 barplot(unlist(top_genre_by_years), main = "The most popular genre by years", xlab="Games count",
-        las=1, col=blue_shades, horiz = TRUE, cex.names = 0.6, xlim=c(0, max(top_genre_by_years))
+        las=1, col=blue_shades,
+        horiz = TRUE, cex.names = 0.6, xlim=c(0, max(top_genre_by_years))
         )
-
-
 ```
+
+
 ```{r}
 min_reviews_count <- 100
 games_with_reviews <- data_with_reviews(games_data, min_reviews_count)
 top_rated_genre_by_years <- get_most_rated_genre_by_years(games_with_reviews)
 par(mar = c(5,8, 2, 1))
-blue_shades <- adjustcolor(rainbow(length(top_genre_by_years), start=.5, end=.65), alpha.f = 0.7)
+blue_shades <- adjustcolor(rainbow(length(top_rated_genre_by_years), start=.5, end=.65), alpha.f = 0.7)
 barplot(unlist(top_rated_genre_by_years) * 10,
               main = paste("Most rated genres by years(reviews count > ", min_reviews_count, ")"),
-              xlab="Rating", las=1, col=blue_shades, horiz = TRUE, cex.names = 0.6, xlim=c(0, 10)
+              xlab="Average user rating", las=1, col=blue_shades,
+              horiz = TRUE, cex.names = 0.6, xlim=c(0, 10)
               )
 
 ```
-
