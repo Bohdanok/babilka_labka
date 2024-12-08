@@ -1,6 +1,24 @@
+---
+title: "P&S-2024: Final Project"
+author: |
+  Viktor Pakholok (<https://github.com/viktorpakholok>)  
+  Lysyk Lev (<https://github.com/Lius912>)  
+  Bohdan Milian (<https://github.com/Bohdanok>)
+output:
+  html_document:
+    df_print: paged
+editor_options: 
+  markdown: 
+    wrap: 60
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(warning = FALSE)
+```
+
+
 ```{r}
-# Load the dataset
-dataset <- read.csv("games_fixed_columns.csv")
+dataset <- read.csv("games_fixed_columns2.csv")
 
 require(evd)
 library(evd)
@@ -17,51 +35,45 @@ library(VGAM)
 require(stats)
 library(stats)
 
-```
+require(ggplot2)
+library(ggplot2)
 
-```{r}
-# install.packages("fitdistrplus")
-# install.packages("MASS")
-# install.packages("actuar")
-
+require(reshape2)
+library(reshape2)
 
 ```
 
-($H_0$): The prices in the dataset follow an exponential distribution with rate parameter $\lambda = \frac{1}{\text{mean_price}}$. $$
+($H_0$): The prices in the dataset follow an exponential distribution
+with rate parameter $\lambda = \frac{1}{\text{mean_price}}$. $$
     H_0: F(x) = 1 - e^{-\lambda x}, \quad \text{for } x \geq 0
     $$
 
-($H_1$): The prices in the dataset do not follow an exponential distribution with rate parameter $\lambda = \frac{1}{\text{mean_price}}$. $$
+($H_1$): The prices in the dataset do not follow an exponential
+distribution with rate parameter
+$\lambda = \frac{1}{\text{mean_price}}$. $$
     H_1: F(x) \neq 1 - e^{-\lambda x}, \quad \text{for } x \geq 0
     $$
 
 ```{r}
 mean_price <- mean(dataset$Price, na.rm = TRUE)
-lambda <- 1 / mean_price  # Exponential rate parameter
+lambda <- 1 / mean_price
 
-# Plot the histogram of the original data
-breaks <- c(seq(0, 49.5, by = 0.5), Inf)
+breaks <- c(seq(0, 49.5, by = 1), Inf)
 hist_obj <- hist(dataset$Price,
                  breaks = breaks,
                  main = "Price Distribution with Exponential Fit",
                  xlab = "Price Ranges",
                  ylab = "Count of Prices",
                  col = "skyblue",
-                 border = "white",
-                 freq = FALSE,   # Y-axis shows density
+                 border = "blue",
+                 freq = FALSE,
                  xlim = c(0, 51))
 
-# Add the theoretical exponential density curve
-curve(dexp(x, rate = lambda), 
-      col = "red", 
-      lwd = 2, 
-      add = TRUE)
+curve(dexp(x, rate = lambda), col = "red", lwd = 2, add = TRUE)
 
-# Perform Kolmogorov-Smirnov test to assess goodness of fit
 ks_test <- ks.test(dataset$Price, "pexp", rate = lambda)
 print(ks_test)
 
-# Add legend
 legend("topright", legend = c("Original Data", "Exponential Fit"), 
        col = c("skyblue", "red"), 
        lwd = 2, 
@@ -70,42 +82,41 @@ legend("topright", legend = c("Original Data", "Exponential Fit"),
 
 ```
 
-We reject $H_0$ in favor of the alternative hypothesis $H_1$. This tells us that the price distribution does not follow an exponential distribution and we cannot tell, which distribution it is.
+We reject $H_0$ in favor of the alternative hypothesis $H_1$. This tells
+us that the price distribution does not follow an exponential
+distribution and we cannot tell, which distribution it is.
+
+
+
+Now we will try to plot the distribution of scores, that users gave to
+the games. Since our dataset provides the count of positive and negative
+scores, we will try to normalize them in the way:
+$$Score = \frac{Positive + 1}{\text{Positive + Negative + 2}}$$ to plot
+them in a compatible way.
 
 ```{r}
-
 sum_values <- dataset$Positive + dataset$Negative
+difference <- ifelse(sum_values > 45, (dataset$Positive + 1) / (dataset$Negative + dataset$Positive + 2),NA)
 
-difference <- ifelse(
-  sum_values > 100,
-  dataset$Positive + 1 / (dataset$Negative + dataset$Positive + 2),
-  NA
-)
+difference <- difference[!is.na(difference)]
 
-difference <- difference[difference <= 1000 & !is.na(difference)]
-
-
-breaks <- seq(floor(min(difference)), ceiling(max(difference)), by = 1)
+breaks <- seq(floor(min(difference)), ceiling(max(difference)), length.out = 100)
 
 hist(
   difference,
   breaks = breaks,
-  main = "Normalized value of user score (Filtered and Limited to 1000)",
+  main = "Normalized value of user score (Filtered)",
   xlab = "Relation of positive to overall score",
   col = "lightblue",
   border = "blue",
-  freq = TRUE, 
-  xlim = c(min(breaks), max(breaks))
+  freq = FALSE,
+  xlim = range(0, 1.05)
 )
-
-
 
 ```
 
+
 ```{r}
-# Load required libraries
-
-
 
 fit_normal <- fitdistr(difference, "normal")
 
@@ -120,63 +131,34 @@ hist(
   difference,
   breaks = breaks,
   freq = FALSE,
+  xlim = range(0, 1.05),
   main = "Histogram with Fitted Distributions",
   xlab = "Difference",
   col = "lightblue",
   border = "blue"
 )
 
-curve(
-  dnorm(x, mean = fit_normal$estimate["mean"], sd = fit_normal$estimate["sd"]),
-  col = "red",
-  lwd = 2,
-  add = TRUE
-)
+curve(dnorm(x, mean = fit_normal$estimate["mean"], sd = fit_normal$estimate["sd"]), col = "red", lwd = 2, add = TRUE)
 
-curve(
-  dexp(x, rate = fit_exponential$estimate["rate"]),
-  col = "black",
-  lwd = 2,
-  add = TRUE
-)
+curve(dexp(x, rate = fit_exponential$estimate["rate"]), col = "black", lwd = 2, add = TRUE)
 
-curve(
-  dweibull(x, shape = fit_weibull$estimate["shape"], scale = fit_weibull$estimate["scale"]),
-  col = "green",
-  lwd = 2,
-  add = TRUE
-)
+curve(dweibull(x, shape = fit_weibull$estimate["shape"], scale = fit_weibull$estimate["scale"]), col = "green", lwd = 2, add = TRUE)
 
-curve(
-  dgev(
-    x, 
-    loc = Coef(fit_genextreme)["location"], 
-    scale = Coef(fit_genextreme)["scale"], 
-    shape = Coef(fit_genextreme)["shape"]
-  ),
-  col = "orange",
-  lwd = 2,
-  add = TRUE
-)
+curve(dgev(x, loc = Coef(fit_genextreme)["location"], scale = Coef(fit_genextreme)["scale"], shape = Coef(fit_genextreme)["shape"]), col = "orange", lwd = 2, add = TRUE)
 
 
 legend(
-  "topright",
+  "topleft",
   legend = c("Normal", "Exponential", "Weibull", "GEV"),
   col = c("red", "black", "green", "orange"),
   lwd = 2
 )
 
-
 ```
 
+
 ```{r}
-# Load required library
-
-# Empirical distribution
 empirical <- ecdf(difference)
-
-# P-value calculations
 
 # Normal distribution
 ks_normal <- ks.test(
@@ -210,7 +192,6 @@ ks_genextreme <- ks.test(
   shape = Coef(fit_genextreme)["shape"]
 )
 
-# Extract p-values
 p_values <- c(
   normal = ks_normal$p.value,
   exponential = ks_exponential$p.value,
@@ -218,17 +199,49 @@ p_values <- c(
   genextreme = ks_genextreme$p.value
 )
 
-# Find the distribution with the largest p-value
 best_fit <- names(which.max(p_values))
 largest_p_value <- max(p_values)
 
-# Print results
 print("P-values for each distribution:")
 print(p_values)
 cat("Distribution with the largest p-value:", best_fit, "\n")
 cat("Largest p-value:", largest_p_value, "\n")
+```
 
+The closest distribution is genextreme
+(<https://en.wikipedia.org/wiki/Generalized_extreme_value_distribution>).
+But we can not say that this is the distribution of our distribution of
+scores, because of small $p-value$.
+
+```{r}
+
+dataset$normalizedScore <- ((dataset$Positive + 1) / (dataset$Negative + dataset$Positive + 2))
+
+filtered_dataset <- dataset[dataset$Metacritic.score > 0, ]
+
+correlation_matrix <- cor(filtered_dataset[sapply(filtered_dataset, is.numeric) & names(filtered_dataset) != "Score.rank" & names(filtered_dataset) != "Positive" & names(filtered_dataset) != "Negative" &names(filtered_dataset) != "X"])
+
+
+ggplot(data = melt(correlation_matrix), aes(x = Var1, y = Var2, fill = value)) +
+  geom_tile(color = "white") +
+
+  geom_text(aes(label = sprintf("%.2f", value)), color = "black", size = 3) +
+
+  scale_fill_gradient2(low = "blue", high = "red", mid = "white", midpoint = 0,
+                       limit = c(-1, 1), space = "Lab", name = "Correlation") +
+  theme_minimal() +
+  theme(
+    axis.text.x = element_text(angle = 45, hjust = 1, size = 10),
+    axis.text.y = element_text(size = 10),
+    panel.grid.major = element_blank(), 
+    panel.grid.minor = element_blank()
+  ) +
+  ggtitle("Correlation Heatmap to see the relation between Metacritic and user score") +
+  theme(plot.title = element_text(hjust = 0.5))
 
 ```
 
-The closest distribution is genextreme (<https://en.wikipedia.org/wiki/Generalized_extreme_value_distribution>). But we can not say that this is the distribution of our distribution of scores, because of small p-value.
+From this heatmap we can see, that the correlation between the
+Metacritic score (<https://www.metacritic.com/>) and user score is
+considerable, although not very high. This is because the point of view
+of professionals not always aligns with the masses.
