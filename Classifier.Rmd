@@ -10,16 +10,17 @@ knitr::opts_chunk$set(echo = TRUE)
 library(dplyr)
 library(readr)
 library(tidytext)
+library(ggplot2)
 ```
 
 ```{r}
-train_path <- "games_fixed_columns.csv"
+train_path <- "games_train.csv"
 train <- read.csv(file = train_path, stringsAsFactors = FALSE)
 ```
 
 ```{r}
 
-test_path <- "games_fixed_columns_test.csv"
+test_path <- "games_test.csv"
 test <- read.csv(file = test_path, stringsAsFactors = FALSE)
 
 ```
@@ -33,14 +34,14 @@ splitted_stop_words <- splitted_stop_words[[1]]
 
 ```{r}
 train <- train %>%
-  mutate(Label = ifelse(Positive >= 2 * Negative, 1, 0))
+  mutate(Label = ifelse(Positive >= 4 * Negative, 1, 0))
 
 train <- train[, c("About.the.game", "Label")]
 ```
 
 ```{r}
 test <- test %>%
-  mutate(Label = ifelse(Positive >= 2 * Negative, 1, 0))
+  mutate(Label = ifelse(Positive >= 4 * Negative, 1, 0))
 
 test <- test[, c("About.the.game", "Label")]
 ```
@@ -92,41 +93,40 @@ naiveBayes <- setRefClass("naiveBayes",
                     predict = function(description)
                     {
                          if (description == "") {
-                           return(0)
-                         }
-                      
-                         p_mess_bad <- prob_of_bad 
-                         p_mess_good <- prob_of_good 
-                         
-                         description <- data.frame(Text=description)
-                         tidy_message <- unnest_tokens(description, 'Word', 'Text', token="words") %>% filter(!Word %in% stopwords)
-                         description_count <- tidy_message %>% count(Word)
-
-                         for(i in 1:length(description_count$Word)){
-                            # print(description_count[i, "Word"])
-                            word = description_count[i, "Word"]
+                            return(0)
+                        }
+                        
+                        log_p_mess_bad <- log(prob_of_bad)
+                        log_p_mess_good <- log(prob_of_good)
+                        
+                        description <- data.frame(Text = description)
+                        tidy_message <- unnest_tokens(description, 'Word', 'Text', token = "words") %>% 
+                                        filter(!Word %in% stopwords)
+                        description_count <- tidy_message %>% count(Word)
+                        
+                        for (i in 1:length(description_count$Word)) {
+                            word <- description_count[i, "Word"]
+                            
                             if (!(word %in% bad_bow$Word)) {
-                              p_mess_bad <- p_mess_bad * 1/(sum_in_bad+num_uniq)
-
+                                log_p_mess_bad <- log_p_mess_bad + log(1 / (sum_in_bad + num_uniq))
                             } else {
-                              p_mess_bad <- p_mess_bad * (bad_bow[bad_bow$Word == word, "n"] + 1)/(sum_in_bad+num_uniq)
+                                log_p_mess_bad <- log_p_mess_bad + 
+                                log((bad_bow[bad_bow$Word == word, "n"] + 1) / (sum_in_bad + num_uniq))
                             }
                             
                             if (!(word %in% good_bow$Word)) {
-                              p_mess_good <- p_mess_good * 1/(sum_in_good+num_uniq)
+                                log_p_mess_good <- log_p_mess_good + log(1 / (sum_in_good + num_uniq))
                             } else {
-                              p_mess_good <- p_mess_good * (good_bow[good_bow$Word == word, "n"] + 1)/(sum_in_good+num_uniq)
+                                log_p_mess_good <- log_p_mess_good + 
+                                log((good_bow[good_bow$Word == word, "n"] + 1) / (sum_in_good + num_uniq))
                             }
-                            if (p_mess_bad<1e-100 || p_mess_good<1e-100) {
-                              p_mess_bad <- p_mess_bad * 1e100
-                              p_mess_good <- p_mess_good * 1e100
-                            }
-                         }
-                         if (p_mess_bad > p_mess_good) {
-                           return(0)
-                         } else {
-                           return(1)
-                         }
+                        }
+                        
+                        if (log_p_mess_bad > log_p_mess_good) {
+                            return(0)
+                        } else {
+                            return(1)
+                        }
                     },
                     
                     # score you test set so to get the understanding how well you model
@@ -146,11 +146,12 @@ naiveBayes <- setRefClass("naiveBayes",
                       total = length(y_test$Label)
 
                       # Model evaluation on test set of news
-                      print(nrow(X_test))
+                      # print(nrow(X_test))
                       for (i in 1:nrow(X_test)) {
                        # print(X_test[i, 1])
                        label = strtoi(y_test[i, 1])
                        prediction = predict(X_test[i, 1])
+                       # print(prediction)
     
                        cat(label)
                        if (label == prediction) {
@@ -189,24 +190,64 @@ model$fit(counted_words, train[2])
 ```
 
 ```{r}
-model$score(test[1], test[2])
+# model$score(test[1], test[2])
 
 # model$predict("")
 
 ```
 
 ```{r}
-# descr_ <- "Hi there"
-# 
-# description <- data.frame(Text=descr_)
-# res <- model$predict(descr_)
-# if (strtoi("1") == res) {
-#   print("YES")
-# }
-# 
-x <- train[2]
-#   
-print(x[1:6])
+percentages <- c(0.01, 0.05, 0.10, 0.20, 0.50, 0.70, 1.00)
+
+metrics <- data.frame(
+  Percentage = numeric(),
+  F1_Score = numeric(),
+  Precision = numeric(),
+  Recall = numeric(),
+  Accuracy = numeric()
+)
+
+for (p in percentages) {
+  print(p)
+
+  sampled_train <- train[sample(1:nrow(train), size = floor(p * nrow(train))), ]
+  sampled_tidy_text <- unnest_tokens(sampled_train, 'Word', 'About.the.game', token = "words") %>%
+    filter(!Word %in% splitted_stop_words)
+  sampled_counted_words <- sampled_tidy_text %>% count(Word, sort = TRUE)
+
+  sampled_model <- naiveBayes(train_df = sampled_tidy_text, stopwords = splitted_stop_words)
+  sampled_model$fit(sampled_counted_words, sampled_train[2])
+
+  results <- sampled_model$score(test[1], test[2])
+
+  metrics <- rbind(
+    metrics,
+    data.frame(
+      Percentage = p * 100,
+      F1_Score = results$f1_score,
+      Precision = results$precision,
+      Recall = results$recall,
+      Accuracy = results$accuracy
+    )
+  )
+}
+
+metrics_melted <- reshape2::melt(metrics, id.vars = "Percentage", variable.name = "Metric")
+
+ggplot(metrics_melted, aes(x = Percentage, y = value, color = Metric)) +
+  geom_line(size = 1) +
+  geom_point(size = 2) +
+  labs(
+    title = "Model Metrics vs. Training Data Percentage",
+    x = "Training Data Percentage",
+    y = "Metric Value"
+  ) +
+  theme_minimal() +
+  scale_color_brewer(palette = "Set2")
+
+```
+
+```{r}
 
 
 ```
