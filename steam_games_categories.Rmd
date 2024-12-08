@@ -1,18 +1,16 @@
 ```{r}
 games_data <- read.csv("games_fixed_columns.csv")
-games_data
 ```
 
 
 ```{r}
 games_data[["Reviews count"]] <- (games_data[["Positive"]] + games_data[["Negative"]])
-min_reviews_count <- 100
-games_with_reviews <- games_data[games_data[["Reviews count"]] > min_reviews_count, ]
-games_with_reviews[["Rating"]] <- games_with_reviews[["Positive"]] / (games_with_reviews[["Reviews count"]])
-```
+games_data[["Rating"]] <- games_data[["Positive"]] / (games_data[["Reviews count"]])
 
-```{r}
-games_with_reviews[["Rating"]][1:10]
+data_with_reviews <- function(cur_data, min_reviews_count) {
+  return (games_data[games_data[["Reviews count"]] > min_reviews_count, ])
+}
+
 ```
 
 
@@ -24,15 +22,15 @@ get_year <- function(date) {
   
 }
 
-get_all_years <- function() {
-  years <- new.env();
-  for (date in games_data[, "Release.date"]) {
-    years[[get_year(date)]] = 0;
+get_all_years <- function(cur_data) {
+  years <- new.env()
+  for (date in cur_data[, "Release.date"]) {
+    years[[get_year(date)]] = 0
   }
   for (year in ls(years)) {
     assign(year, new.env(), envir = years)
   }
-  return (years);
+  return (years)
 }
 ```
 
@@ -42,12 +40,12 @@ select_top_genre <- function(years) {
   top_genres_by_year <- list()
   for (year in ls(years)) {
     genres_count <- years[[year]]
-    most_popular_genre <- "";
-    max_count <- -1;
+    most_popular_genre <- ""
+    max_count <- -1
     for (genre in ls(genres_count)) {
       count <- genres_count[[genre]]
-      if (count > max_count) {
-        max_count = count;
+      if (count > max_count && genre != "Sexual Content" && genre != "Nudity") {
+        max_count = count
         most_popular_genre <- genre
       }
     }
@@ -55,53 +53,97 @@ select_top_genre <- function(years) {
   }
   return (top_genres_by_year)
 }
-count_genres_by_years <- function(games_data) {
-  years <- get_all_years();
+count_genres_by_years <- function(cur_data) {
+  years <- get_all_years(cur_data)
 
-  for (i in 1:nrow(games_data)) {
-    date <- games_data[i, "Release.date"]
+  for (i in 1:nrow(cur_data)) {
+    date <- cur_data[i, "Release.date"]
     year <- get_year(date)
-    genres <- games_data[i, "Genres"]
-    genres_vec <- unlist(strsplit(genres, ","));
+    genres <- cur_data[i, "Genres"]
+    genres_vec <- unlist(strsplit(genres, ","))
     cur_year_genres_count <- years[[year]]
     for (genre in genres_vec) {
       if (!exists(genre, envir = cur_year_genres_count)) {
-        cur_year_genres_count[[genre]] <- 0;
+        cur_year_genres_count[[genre]] <- 0
       }
-      cur_year_genres_count[[genre]] <- cur_year_genres_count[[genre]] + 1;
+      cur_year_genres_count[[genre]] <- cur_year_genres_count[[genre]] + 1
     }
   }
-  rm("2025", envir = years)
   return (years)
 }
 
-# most_popular_genre_by_years <- function(games_data) {
-#   years <- get_all_years()
-# 
-#   for (i in 1:nrow(games_data)) {
-#     date <- games_data[i, "Release.date"]
-#     year <- get_year(date)
-#     rating <- games_data[i, "Rating"]
-#     
-#   }
-# }
+sum_genres_rating_by_years <- function(cur_data) {
+  years <- get_all_years(cur_data)
 
+  for (i in 1:nrow(cur_data)) {
+    date <- cur_data[i, "Release.date"]
+    year <- get_year(date)
+    
+    genres <- cur_data[i, "Genres"]
+    genres_vec <- unlist(strsplit(genres, ","))
+    
+    rating <- cur_data[i, "Rating"]
+    cur_year_genres_sum_rating <- years[[year]]
+    for (genre in genres_vec) {
+      if (!exists(genre, envir = cur_year_genres_sum_rating)) {
+        cur_year_genres_sum_rating[[genre]] <- 0
+      }
+      cur_year_genres_sum_rating[[genre]] <- cur_year_genres_sum_rating[[genre]] + rating
+    }
+  }
+  return (years)
+}
 
+average_genres_rating_by_years <- function(cur_data, count_by_years, sum_rating_by_years) {
+  average_rating_by_years <- get_all_years(cur_data)
 
-get_top_genre_by_years <- function(games_data) {
-  years <- count_genres_by_years(games_data)
-  return (select_top_genre(years))
+  for (year in ls(sum_rating_by_years)) {
+    for (genre in ls(sum_rating_by_years[[year]])) {
+      average_rating_by_years[[year]][[genre]] <- sum_rating_by_years[[year]][[genre]] / count_by_years[[year]][[genre]]
+    }
+  }
+  return (average_rating_by_years)
 }
 
 
 
+get_most_created_genre_by_years <- function(cur_data) {
+  years <- count_genres_by_years(cur_data)
+  return (select_top_genre(years))
+}
+
+get_most_rated_genre_by_years <- function(cur_data) {
+  sum_rating <- sum_genres_rating_by_years(cur_data)
+  years <- average_genres_rating_by_years(cur_data, count_genres_by_years(cur_data), sum_rating)
+  return (select_top_genre(years))
+}
 
 ```
 
 ```{r}
-top_genre_by_years <- get_top_genre_by_years(games_with_reviews)
-par(mar = c(5,5, 0, 0))
-barplot(unlist(top_genre_by_years), las=1, col="lightgreen", horiz = TRUE, cex.names = 0.6)
+min_reviews_count <- 5
+games_data2 <- data_with_reviews(games_data, min_reviews_count)
+
+top_genre_by_years <- unlist(get_most_created_genre_by_years(games_data2))
+
+par(mar = c(5,8, 2, 1))
+blue_shades <- adjustcolor(rainbow(length(top_genre_by_years), start=.5, end=.65), alpha.f = 0.7)
+barplot(unlist(top_genre_by_years), main = "The most popular genre by years", xlab="Games count",
+        las=1, col=blue_shades, horiz = TRUE, cex.names = 0.6, xlim=c(0, max(top_genre_by_years))
+        )
+
+
+```
+```{r}
+min_reviews_count <- 100
+games_with_reviews <- data_with_reviews(games_data, min_reviews_count)
+top_rated_genre_by_years <- get_most_rated_genre_by_years(games_with_reviews)
+par(mar = c(5,8, 2, 1))
+blue_shades <- adjustcolor(rainbow(length(top_genre_by_years), start=.5, end=.65), alpha.f = 0.7)
+barplot(unlist(top_rated_genre_by_years) * 10,
+              main = paste("Most rated genres by years(reviews count > ", min_reviews_count, ")"),
+              xlab="Rating", las=1, col=blue_shades, horiz = TRUE, cex.names = 0.6, xlim=c(0, 10)
+              )
 
 ```
 
