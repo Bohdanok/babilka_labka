@@ -2,7 +2,6 @@
 games_data <- read.csv("games_fixed_columns.csv")
 ```
 
-
 ```{r}
 games_data[["Reviews count"]] <- (games_data[["Positive"]] + games_data[["Negative"]])
 games_data[["Rating"]] <- games_data[["Positive"]] / (games_data[["Reviews count"]])
@@ -12,7 +11,6 @@ data_with_reviews <- function(cur_data, min_reviews_count) {
 }
 
 ```
-
 
 ```{r}
 
@@ -120,7 +118,6 @@ get_most_rated_genre_by_years <- function(cur_data) {
 
 ```
 
-
 ```{r}
 min_reviews_count <- 5
 games_data2 <- data_with_reviews(games_data, min_reviews_count)
@@ -135,6 +132,11 @@ barplot(unlist(top_genre_by_years), main = "The most popular genre by years", xl
         )
 ```
 
+Looking at the graph above we can see that most games from 1997 to 2012 are **action**.
+
+In 2005 and 2006 RPG and **strategy** were created the most which is because more people liked these games, so more games of these genres were produced.
+
+And in years from 2013 to 2024 **indie** games were the most popular because game development became easier, more guides were available on the internet so more games were created by small teams consisting of several developers.
 
 ```{r}
 min_reviews_count <- 100
@@ -143,9 +145,15 @@ top_rated_genre_by_years <- get_most_rated_genre_by_years(games_with_reviews)
 par(mar = c(5,8, 2, 1))
 blue_shades <- adjustcolor(rainbow(length(top_rated_genre_by_years), start=.5, end=.65), alpha.f = 0.7)
 barplot(unlist(top_rated_genre_by_years) * 10,
-              main = paste("Most rated genres by years(reviews count > ", min_reviews_count, ")"),
+              main = paste("The most rated genres by years(reviews count > ", min_reviews_count, ")"),
               xlab="Average user rating", las=1, col=blue_shades,
               horiz = TRUE, cex.names = 0.6, xlim=c(0, 10)
               )
 
 ```
+
+This barplot depicts that from 1997 to 2006 generally **action** genre was the most rated.
+
+Then plot shows that **free to play** games became well rated because this is probably the time when more free games started coming out.
+
+Steam is targetted as platform for games, but it still has other applications and from 2012 most rated games are not actually games, but rather applications for **modeling**, **animating** and even **game development** in 2021.
