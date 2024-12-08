@@ -50,7 +50,7 @@ Analyze and visualize the dataset provided by the Steam game service to identify
 
 # **Data specifications:**
 
-*This dataset provides detailed information about video games, including their titles, release dates, pricing, and supported platforms (Windows, Mac, Linux). It has user interaction metrics like peak concurrent users, reviews, and playtime data, along with additional details such as categories, genres, tags, and achievements. The dataset also captures commercial and content-related information like estimated owners, downloadable content (DLC) counts, and Metacritic scores for popular games.*
+*This dataset provides detailed information about video games, including their titles, release dates, pricing, and supported platforms (Windows, Mac, Linux). It has user interaction metrics like peak concurrent users, reviews, and playtime data, along with additional details such as categories, genres, tags, and achievements. The dataset also captures commercial and content-related information like estimated owners, downloadable content (DLC) counts, and Metacritic (<https://www.metacritic.com/>) scores for popular games.*
 
 ```{r, warning=FALSE, message=FALSE}
 dataset <- read.csv("games_fixed_columns2.csv")
@@ -227,6 +227,8 @@ The closest distribution is genextreme
 But we can not say that this is the distribution of our distribution of
 scores, because of small $p-value$.
 
+Here we'll see the heatmap to show relationships between variables in a dataset
+
 ```{r}
 
 dataset$normalizedScore <- ((dataset$Positive + 1) / (dataset$Negative + dataset$Positive + 2))
@@ -256,6 +258,6 @@ ggplot(data = melt(correlation_matrix), aes(x = Var1, y = Var2, fill = value)) +
 ```
 
 From this heatmap we can see, that the correlation between the
-Metacritic score (<https://www.metacritic.com/>) and user score is
+Metacritic score and user score is
 considerable, although not very high. This is because the point of view
 of professionals not always aligns with the masses.
