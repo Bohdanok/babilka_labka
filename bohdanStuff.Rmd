@@ -14,12 +14,6 @@ editor_options:
 
 ```{r setup, include=FALSE}
 knitr::opts_chunk$set(warning = FALSE)
-```
-
-
-```{r}
-dataset <- read.csv("games_fixed_columns2.csv")
-
 require(evd)
 library(evd)
 
@@ -41,6 +35,26 @@ library(ggplot2)
 require(reshape2)
 library(reshape2)
 
+require(DT)
+library(DT)
+
+```
+
+# **The aim of the project:**
+
+Analyze and visualize the dataset provided by the Steam game service to identify and explore potential correlations between various characteristics. Get some meaningful insights and present them.
+
+## *For this we used the dataset from Kaggle*
+
+<https://www.kaggle.com/datasets/fronkongames/steam-games-dataset?resource=download>
+
+# **Data specifications:**
+
+*This dataset provides detailed information about video games, including their titles, release dates, pricing, and supported platforms (Windows, Mac, Linux). It has user interaction metrics like peak concurrent users, reviews, and playtime data, along with additional details such as categories, genres, tags, and achievements. The dataset also captures commercial and content-related information like estimated owners, downloadable content (DLC) counts, and Metacritic scores for popular games.*
+
+```{r, warning=FALSE, message=FALSE}
+dataset <- read.csv("games_fixed_columns2.csv")
+head(dataset, 7)
 ```
 
 ($H_0$): The prices in the dataset follow an exponential distribution
@@ -236,7 +250,7 @@ ggplot(data = melt(correlation_matrix), aes(x = Var1, y = Var2, fill = value)) +
     panel.grid.major = element_blank(), 
     panel.grid.minor = element_blank()
   ) +
-  ggtitle("Correlation Heatmap to see the relation between Metacritic and user score") +
+  ggtitle("Correlation Heatmap to see the relation between different values of the dataset") +
   theme(plot.title = element_text(hjust = 0.5))
 
 ```
